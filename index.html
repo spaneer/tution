@@ -2,35 +2,42 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tuition Tracker - January 2025</title>
+  <title>Tuition Tracker - Jul to Dec 2025 (Evenings Only)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      padding: 20px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
+      font-size: 14px;
     }
     th, td {
       border: 1px solid #aaa;
-      padding: 8px;
+      padding: 6px;
       text-align: center;
     }
     th {
       background-color: #f0f0f0;
     }
-    input[type="time"], input[type="number"] {
-      width: 100px;
+    input[type="time"], input[type="text"], input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
     }
     .summary {
       font-weight: bold;
+      font-size: 1.1em;
+    }
+    .nowrap {
+      white-space: nowrap;
     }
   </style>
 </head>
 <body>
 
-<h2>Tuition Tracker - January 2025</h2>
+<h2>Tuition Tracker (Kannada & Hindi - July to December 2025)</h2>
 
 <table id="tuitionTable">
   <thead>
@@ -38,75 +45,107 @@
       <th>Date</th>
       <th>Day</th>
       <th>Subject</th>
-      <th>Start Time</th>
+      <th>Start Time<br><small>(After 4:30 PM)</small></th>
       <th>End Time</th>
       <th>Hours</th>
+      <th>Tutor Name</th>
+      <th>Comments</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
 <div class="summary">
-  Total Kannada Hours: <span id="kannadaTotal">0</span><br>
-  Total Hindi Hours: <span id="hindiTotal">0</span>
+  🧾 Total Kannada Hours: <span id="kannadaTotal">0</span> hrs<br>
+  🧾 Total Hindi Hours: <span id="hindiTotal">0</span> hrs
 </div>
 
 <script>
-  const subjects = {
-    "Monday": "Kannada",
-    "Tuesday": "Hindi",
-    "Wednesday": "Kannada",
-    "Thursday": "Hindi",
-    "Friday": "Kannada"
-  };
-
   const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const tbody = document.querySelector("#tuitionTable tbody");
 
-  for (let day = 1; day <= 31; day++) {
-    const date = new Date(2025, 0, day); // January is month 0
-    const dayName = daysMap[date.getDay()];
+  function pad(n) { return n < 10 ? "0" + n : n; }
 
-    if (subjects[dayName]) {
-      const subject = subjects[dayName];
-      const row = document.createElement("tr");
+  for (let month = 6; month <= 11; month++) {  // July to December (6–11)
+    const daysInMonth = new Date(2025, month + 1, 0).getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(2025, month, day);
+      const dayName = daysMap[date.getDay()];
+      const dateStr = `${2025}-${pad(month + 1)}-${pad(day)}`;
 
-      row.innerHTML = `
-        <td>${date.toISOString().split('T')[0]}</td>
-        <td>${dayName}</td>
-        <td>${subject}</td>
-        <td><input type="time" class="startTime"></td>
-        <td><input type="time" class="endTime"></td>
-        <td><input type="number" class="hours" step="0.25" min="0"></td>
-      `;
-
-      tbody.appendChild(row);
+      if (["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].includes(dayName)) {
+        ["Kannada", "Hindi"].forEach(subject => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${dateStr}</td>
+            <td>${dayName}</td>
+            <td>${subject}</td>
+            <td><input type="time" class="startTime" min="16:30" max="19:00"></td>
+            <td><input type="time" class="endTime"></td>
+            <td><input type="number" class="hours" step="0.25" readonly></td>
+            <td><input type="text" class="tutor"></td>
+            <td><input type="text" class="comment"></td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
     }
   }
 
-  function calculateTotals() {
+  function updateHours(row) {
+    const startInput = row.querySelector(".startTime");
+    const endInput = row.querySelector(".endTime");
+    const hoursInput = row.querySelector(".hours");
+
+    const start = startInput.value;
+    const end = endInput.value;
+
+    // Time validation
+    if (start && end) {
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+
+      const startTime = sh + sm / 60;
+      const endTime = eh + em / 60;
+
+      if (startTime < 16.5 || startTime > 19.0) {
+        hoursInput.value = "";
+        alert("Start time must be between 4:30 PM and 7:00 PM");
+        startInput.value = "";
+        return;
+      }
+
+      const diff = Math.max(0, endTime - startTime);
+      hoursInput.value = diff.toFixed(2);
+    } else {
+      hoursInput.value = "";
+    }
+
+    updateTotals();
+  }
+
+  function updateTotals() {
     let kannadaTotal = 0;
     let hindiTotal = 0;
 
-    const rows = tbody.querySelectorAll("tr");
-    rows.forEach(row => {
+    tbody.querySelectorAll("tr").forEach(row => {
       const subject = row.children[2].textContent;
-      const hoursInput = row.querySelector(".hours");
-      const hours = parseFloat(hoursInput.value) || 0;
+      const hours = parseFloat(row.querySelector(".hours").value) || 0;
 
-      if (subject === "Kannada") {
-        kannadaTotal += hours;
-      } else if (subject === "Hindi") {
-        hindiTotal += hours;
-      }
+      if (subject === "Kannada") kannadaTotal += hours;
+      if (subject === "Hindi") hindiTotal += hours;
     });
 
     document.getElementById("kannadaTotal").textContent = kannadaTotal.toFixed(2);
     document.getElementById("hindiTotal").textContent = hindiTotal.toFixed(2);
   }
 
-  // Update total hours when hours are edited
-  tbody.addEventListener("input", calculateTotals);
+  tbody.addEventListener("input", e => {
+    if (e.target.classList.contains("startTime") || e.target.classList.contains("endTime")) {
+      const row = e.target.closest("tr");
+      updateHours(row);
+    }
+  });
 </script>
 
 </body>
