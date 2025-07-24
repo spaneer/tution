@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Tuition Tracker: Kannada & Hindi Separate Rows</title>
+<title>Tuition Tracker: Kannada & Hindi Separate Excel Files</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   body { font-family: Arial, sans-serif; margin: 20px; }
@@ -63,7 +63,7 @@
   #controls {
     margin-bottom: 15px;
   }
-  button#submitBtn, input#importExcel {
+  button#submitBtn {
     padding: 8px 15px;
     font-size: 14px;
   }
@@ -71,15 +71,29 @@
     margin-top: 10px;
     font-weight: bold;
   }
+  .import-group {
+    margin-bottom: 10px;
+  }
+  label {
+    font-weight: bold;
+    margin-right: 10px;
+  }
 </style>
 </head>
 <body>
 
-<h2>📘 Tuition Tracker July – December 2025 (Separate rows for Kannada & Hindi)</h2>
+<h2>📘 Tuition Tracker July – December 2025 (Separate Excel for Kannada & Hindi)</h2>
 
 <div id="controls">
-  <input type="file" id="importExcel" accept=".xlsx" />
-  <button id="submitBtn">📤 Submit & Export to Excel</button>
+  <div class="import-group">
+    <label for="importExcelKannada">Import Kannada Excel:</label>
+    <input type="file" id="importExcelKannada" accept=".xlsx" />
+  </div>
+  <div class="import-group">
+    <label for="importExcelHindi">Import Hindi Excel:</label>
+    <input type="file" id="importExcelHindi" accept=".xlsx" />
+  </div>
+  <button id="submitBtn">📤 Export Kannada & Hindi Excel Files</button>
   <span id="status"></span>
 </div>
 
@@ -109,6 +123,7 @@
   const monthTabs = document.getElementById("monthTabs");
   const tabContents = document.getElementById("tabContents");
 
+  // Create tabs for each month
   for(let i=0; i<monthsCount; i++) {
     const monthIndex = startMonthIndex + i;
     const year = startYear;
@@ -124,45 +139,76 @@
     tabDiv.classList.add("tabcontent");
     if(i === 0) tabDiv.style.display = "block";
 
-    const days = getMonthDays(year, monthIndex);
-    const table = document.createElement("table");
-    table.id = `table-${monthNames[i]}`;
-    table.innerHTML = `
+    // Create two tables per month, one for Kannada and one for Hindi
+    // Kannada Table
+    const kannadaTable = document.createElement("table");
+    kannadaTable.id = `table-${monthNames[i]}-Kannada`;
+    kannadaTable.innerHTML = `
+      <caption><strong>${monthNames[i]} - Kannada</strong></caption>
       <thead>
         <tr>
-          <th>Date</th><th>Day</th><th>Subject</th><th>Start Time</th><th>End Time</th><th>Hours</th><th>Tutor</th><th>Comment</th>
+          <th>Date</th><th>Day</th><th>Start Time</th><th>End Time</th><th>Hours</th><th>Tutor</th><th>Comment</th>
         </tr>
       </thead>
       <tbody></tbody>
     `;
-    const tbody = table.querySelector("tbody");
+    const kannadaTbody = kannadaTable.querySelector("tbody");
+
+    // Hindi Table
+    const hindiTable = document.createElement("table");
+    hindiTable.id = `table-${monthNames[i]}-Hindi`;
+    hindiTable.innerHTML = `
+      <caption><strong>${monthNames[i]} - Hindi</strong></caption>
+      <thead>
+        <tr>
+          <th>Date</th><th>Day</th><th>Start Time</th><th>End Time</th><th>Hours</th><th>Tutor</th><th>Comment</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const hindiTbody = hindiTable.querySelector("tbody");
+
+    const days = getMonthDays(year, monthIndex);
 
     days.forEach(date => {
       const day = date.getDay();
       const dateStr = date.toISOString().split('T')[0];
       const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day];
 
-      // Add two rows per date, one Kannada and one Hindi
-      ["Kannada", "Hindi"].forEach(subject => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${dateStr}</td>
-          <td>${dayName}</td>
-          <td>${subject}</td>
-          <td><input type="time" class="startTime" min="16:30" max="19:00"></td>
-          <td><input type="time" class="endTime"></td>
-          <td><input type="text" class="hours" readonly></td>
-          <td><input type="text" class="tutor"></td>
-          <td><input type="text" class="comment"></td>
-        `;
-        tbody.appendChild(tr);
-      });
+      // Kannada row
+      const kannadaRow = document.createElement("tr");
+      kannadaRow.innerHTML = `
+        <td>${dateStr}</td>
+        <td>${dayName}</td>
+        <td><input type="time" class="startTime" min="16:30" max="19:00"></td>
+        <td><input type="time" class="endTime"></td>
+        <td><input type="text" class="hours" readonly></td>
+        <td><input type="text" class="tutor"></td>
+        <td><input type="text" class="comment"></td>
+      `;
+      kannadaTbody.appendChild(kannadaRow);
+
+      // Hindi row
+      const hindiRow = document.createElement("tr");
+      hindiRow.innerHTML = `
+        <td>${dateStr}</td>
+        <td>${dayName}</td>
+        <td><input type="time" class="startTime" min="16:30" max="19:00"></td>
+        <td><input type="time" class="endTime"></td>
+        <td><input type="text" class="hours" readonly></td>
+        <td><input type="text" class="tutor"></td>
+        <td><input type="text" class="comment"></td>
+      `;
+      hindiTbody.appendChild(hindiRow);
     });
 
-    tabDiv.appendChild(table);
+    tabDiv.appendChild(kannadaTable);
+    tabDiv.appendChild(document.createElement("br"));
+    tabDiv.appendChild(hindiTable);
     tabContents.appendChild(tabDiv);
   }
 
+  // Tab switching logic
   monthTabs.addEventListener("click", e => {
     if(e.target.tagName !== "BUTTON") return;
     [...monthTabs.children].forEach(btn => btn.classList.remove("active"));
@@ -173,6 +219,7 @@
     document.getElementById(id).style.display = "block";
   });
 
+  // Calculate hours on time input change
   tabContents.addEventListener("input", e => {
     if (e.target.classList.contains("startTime") || e.target.classList.contains("endTime")) {
       const row = e.target.closest("tr");
@@ -189,31 +236,40 @@
     }
   });
 
+  // Export separate Excel files for Kannada and Hindi
   function exportToExcel() {
-    const wb = XLSX.utils.book_new();
-    for(let i=0; i<monthsCount; i++) {
-      const month = monthNames[i];
-      const table = document.getElementById(`table-${month}`);
-      const rows = Array.from(table.querySelectorAll("tbody tr"));
-      const data = rows.map(row => ({
-        Date: row.children[0].textContent,
-        Day: row.children[1].textContent,
-        Subject: row.children[2].textContent,
-        StartTime: row.querySelector(".startTime").value,
-        EndTime: row.querySelector(".endTime").value,
-        Hours: row.querySelector(".hours").value,
-        Tutor: row.querySelector(".tutor").value,
-        Comment: row.querySelector(".comment").value
-      }));
-      const ws = XLSX.utils.json_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, month);
+    // Helper to gather data by language
+    function gatherData(language) {
+      const wb = XLSX.utils.book_new();
+      for(let i=0; i<monthsCount; i++) {
+        const month = monthNames[i];
+        const table = document.getElementById(`table-${month}-${language}`);
+        const rows = Array.from(table.querySelectorAll("tbody tr"));
+        const data = rows.map(row => ({
+          Date: row.children[0].textContent,
+          Day: row.children[1].textContent,
+          StartTime: row.querySelector(".startTime").value,
+          EndTime: row.querySelector(".endTime").value,
+          Hours: row.querySelector(".hours").value,
+          Tutor: row.querySelector(".tutor").value,
+          Comment: row.querySelector(".comment").value
+        }));
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, month);
+      }
+      return wb;
     }
-    XLSX.writeFile(wb, "tuition-data-multimonth.xlsx");
+
+    const kannadaWb = gatherData("Kannada");
+    XLSX.writeFile(kannadaWb, "tuition-data-Kannada.xlsx");
+
+    const hindiWb = gatherData("Hindi");
+    XLSX.writeFile(hindiWb, "tuition-data-Hindi.xlsx");
   }
 
-  document.getElementById("importExcel").addEventListener("change", function (e) {
-    const file = e.target.files[0];
-    if(!file) return;
+  // Import function per language
+  function importExcel(language, file) {
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = function (evt) {
       const data = new Uint8Array(evt.target.result);
@@ -222,7 +278,7 @@
         const ws = wb.Sheets[month];
         if(!ws) return;
         const json = XLSX.utils.sheet_to_json(ws);
-        const table = document.getElementById(`table-${month}`);
+        const table = document.getElementById(`table-${month}-${language}`);
         const rows = table.querySelectorAll("tbody tr");
         json.forEach((item, i) => {
           if(i >= rows.length) return;
@@ -234,14 +290,22 @@
           row.querySelector(".comment").value = item.Comment || "";
         });
       });
-      document.getElementById("status").textContent = "✅ Data imported from Excel.";
+      document.getElementById("status").textContent = `✅ ${language} data imported successfully.`;
     };
     reader.readAsArrayBuffer(file);
+  }
+
+  document.getElementById("importExcelKannada").addEventListener("change", function(e) {
+    importExcel("Kannada", e.target.files[0]);
+  });
+
+  document.getElementById("importExcelHindi").addEventListener("change", function(e) {
+    importExcel("Hindi", e.target.files[0]);
   });
 
   document.getElementById("submitBtn").addEventListener("click", () => {
     exportToExcel();
-    document.getElementById("status").textContent = "✅ Excel file downloaded.";
+    document.getElementById("status").textContent = "✅ Kannada & Hindi Excel files downloaded.";
   });
 </script>
 
