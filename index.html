@@ -1,150 +1,257 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Tuition Tracker - Jul to Dec 2025 (Evenings Only)</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 30px;
-      font-size: 14px;
-    }
-    th, td {
-      border: 1px solid #aaa;
-      padding: 6px;
-      text-align: center;
-    }
-    th {
-      background-color: #f0f0f0;
-    }
-    input[type="time"], input[type="text"], input[type="number"] {
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .summary {
-      font-weight: bold;
-      font-size: 1.1em;
-    }
-    .nowrap {
-      white-space: nowrap;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Tuition Tracker: Multi-Month Tabs</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  h2 { margin-bottom: 10px; }
+  .tabs {
+    overflow: hidden;
+    background: #f1f1f1;
+    border-radius: 5px 5px 0 0;
+    margin-bottom: 0;
+  }
+  .tabs button {
+    background: inherit;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 18px;
+    float: left;
+    transition: 0.3s;
+    font-size: 16px;
+  }
+  .tabs button:hover {
+    background-color: #ddd;
+  }
+  .tabs button.active {
+    background-color: #ccc;
+    font-weight: bold;
+  }
+  .tabcontent {
+    display: none;
+    border: 1px solid #ccc;
+    border-top: none;
+    padding: 10px;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 5px;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    text-align: center;
+  }
+  th {
+    background: #eee;
+  }
+  input[type="time"], input[type="text"] {
+    width: 100px;
+    box-sizing: border-box;
+    font-size: 14px;
+  }
+  input[type="text"].tutor, input[type="text"].comment {
+    width: 150px;
+  }
+  #controls {
+    margin-bottom: 15px;
+  }
+  button#submitBtn, input#importExcel {
+    padding: 8px 15px;
+    font-size: 14px;
+  }
+  #status {
+    margin-top: 10px;
+    font-weight: bold;
+  }
+</style>
 </head>
 <body>
 
-<h2>Tuition Tracker (Kannada & Hindi - July to December 2025)</h2>
+<h2>📘 Tuition Tracker July – December 2025 (Mon–Fri)</h2>
 
-<table id="tuitionTable">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Day</th>
-      <th>Subject</th>
-      <th>Start Time<br><small>(After 4:30 PM)</small></th>
-      <th>End Time</th>
-      <th>Hours</th>
-      <th>Tutor Name</th>
-      <th>Comments</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
-<div class="summary">
-  🧾 Total Kannada Hours: <span id="kannadaTotal">0</span> hrs<br>
-  🧾 Total Hindi Hours: <span id="hindiTotal">0</span> hrs
+<div id="controls">
+  <input type="file" id="importExcel" accept=".xlsx" />
+  <button id="submitBtn">📤 Submit & Export to Excel</button>
+  <span id="status"></span>
 </div>
 
+<div class="tabs" id="monthTabs"></div>
+
+<div id="tabContents"></div>
+
 <script>
-  const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const tbody = document.querySelector("#tuitionTable tbody");
+  const monthNames = ["July", "August", "September", "October", "November", "December"];
+  const startYear = 2025;
+  const startMonthIndex = 6; // July = 6 (0-based)
+  const monthsCount = 6;
 
-  function pad(n) { return n < 10 ? "0" + n : n; }
-
-  for (let month = 6; month <= 11; month++) {  // July to December (6–11)
-    const daysInMonth = new Date(2025, month + 1, 0).getDate();
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(2025, month, day);
-      const dayName = daysMap[date.getDay()];
-      const dateStr = `${2025}-${pad(month + 1)}-${pad(day)}`;
-
-      if (["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].includes(dayName)) {
-        ["Kannada", "Hindi"].forEach(subject => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${dateStr}</td>
-            <td>${dayName}</td>
-            <td>${subject}</td>
-            <td><input type="time" class="startTime" min="16:30" max="19:00"></td>
-            <td><input type="time" class="endTime"></td>
-            <td><input type="number" class="hours" step="0.25" readonly></td>
-            <td><input type="text" class="tutor"></td>
-            <td><input type="text" class="comment"></td>
-          `;
-          tbody.appendChild(row);
-        });
+  // Helper: get days Mon-Fri for a month-year
+  function getMonthDays(year, month) {
+    const days = [];
+    const date = new Date(year, month, 1);
+    while (date.getMonth() === month) {
+      const day = date.getDay();
+      if (day >= 1 && day <= 5) { // Mon-Fri only
+        days.push(new Date(date));
       }
+      date.setDate(date.getDate() + 1);
     }
+    return days;
   }
 
-  function updateHours(row) {
-    const startInput = row.querySelector(".startTime");
-    const endInput = row.querySelector(".endTime");
-    const hoursInput = row.querySelector(".hours");
+  // Create tabs and tables dynamically
+  const monthTabs = document.getElementById("monthTabs");
+  const tabContents = document.getElementById("tabContents");
 
-    const start = startInput.value;
-    const end = endInput.value;
+  for(let i=0; i<monthsCount; i++) {
+    const monthIndex = startMonthIndex + i;
+    const year = startYear;
 
-    // Time validation
-    if (start && end) {
-      const [sh, sm] = start.split(":").map(Number);
-      const [eh, em] = end.split(":").map(Number);
+    // Create tab button
+    const tabBtn = document.createElement("button");
+    tabBtn.textContent = monthNames[i];
+    tabBtn.dataset.tab = monthNames[i];
+    if(i === 0) tabBtn.classList.add("active");
+    monthTabs.appendChild(tabBtn);
 
-      const startTime = sh + sm / 60;
-      const endTime = eh + em / 60;
+    // Create tab content div
+    const tabDiv = document.createElement("div");
+    tabDiv.id = monthNames[i];
+    tabDiv.classList.add("tabcontent");
+    if(i === 0) tabDiv.style.display = "block";
 
-      if (startTime < 16.5 || startTime > 19.0) {
-        hoursInput.value = "";
-        alert("Start time must be between 4:30 PM and 7:00 PM");
-        startInput.value = "";
-        return;
-      }
+    // Build table for this month
+    const days = getMonthDays(year, monthIndex);
+    const table = document.createElement("table");
+    table.id = `table-${monthNames[i]}`;
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Date</th><th>Day</th><th>Subject</th><th>Start Time</th><th>End Time</th><th>Hours</th><th>Tutor</th><th>Comment</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const tbody = table.querySelector("tbody");
 
-      const diff = Math.max(0, endTime - startTime);
-      hoursInput.value = diff.toFixed(2);
-    } else {
-      hoursInput.value = "";
-    }
+    days.forEach(date => {
+      const day = date.getDay();
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day];
+      const subject = (day === 1 || day === 3 || day === 5) ? "Kannada" : "Hindi"; // Mon,Wed,Fri Kannada else Hindi
 
-    updateTotals();
-  }
-
-  function updateTotals() {
-    let kannadaTotal = 0;
-    let hindiTotal = 0;
-
-    tbody.querySelectorAll("tr").forEach(row => {
-      const subject = row.children[2].textContent;
-      const hours = parseFloat(row.querySelector(".hours").value) || 0;
-
-      if (subject === "Kannada") kannadaTotal += hours;
-      if (subject === "Hindi") hindiTotal += hours;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${dateStr}</td>
+        <td>${dayName}</td>
+        <td>${subject}</td>
+        <td><input type="time" class="startTime" min="16:30" max="19:00"></td>
+        <td><input type="time" class="endTime"></td>
+        <td><input type="text" class="hours" readonly></td>
+        <td><input type="text" class="tutor"></td>
+        <td><input type="text" class="comment"></td>
+      `;
+      tbody.appendChild(tr);
     });
 
-    document.getElementById("kannadaTotal").textContent = kannadaTotal.toFixed(2);
-    document.getElementById("hindiTotal").textContent = hindiTotal.toFixed(2);
+    tabDiv.appendChild(table);
+    tabContents.appendChild(tabDiv);
   }
 
-  tbody.addEventListener("input", e => {
+  // Tab switching
+  monthTabs.addEventListener("click", e => {
+    if(e.target.tagName !== "BUTTON") return;
+    // Remove active class on all buttons
+    [...monthTabs.children].forEach(btn => btn.classList.remove("active"));
+    e.target.classList.add("active");
+
+    // Hide all tab contents
+    [...tabContents.children].forEach(div => div.style.display = "none");
+    // Show current
+    const id = e.target.dataset.tab;
+    document.getElementById(id).style.display = "block";
+  });
+
+  // Calculate hours per row
+  tabContents.addEventListener("input", e => {
     if (e.target.classList.contains("startTime") || e.target.classList.contains("endTime")) {
       const row = e.target.closest("tr");
-      updateHours(row);
+      const start = row.querySelector(".startTime").value;
+      const end = row.querySelector(".endTime").value;
+      if (start && end && end > start) {
+        const [sh, sm] = start.split(":").map(Number);
+        const [eh, em] = end.split(":").map(Number);
+        const diff = (eh * 60 + em - (sh * 60 + sm)) / 60;
+        row.querySelector(".hours").value = diff.toFixed(2);
+      } else {
+        row.querySelector(".hours").value = "";
+      }
     }
+  });
+
+  // EXPORT ALL MONTHS TO EXCEL WITH MULTIPLE SHEETS
+  function exportToExcel() {
+    const wb = XLSX.utils.book_new();
+    for(let i=0; i<monthsCount; i++) {
+      const month = monthNames[i];
+      const table = document.getElementById(`table-${month}`);
+      const rows = Array.from(table.querySelectorAll("tbody tr"));
+      const data = rows.map(row => ({
+        Date: row.children[0].textContent,
+        Day: row.children[1].textContent,
+        Subject: row.children[2].textContent,
+        StartTime: row.querySelector(".startTime").value,
+        EndTime: row.querySelector(".endTime").value,
+        Hours: row.querySelector(".hours").value,
+        Tutor: row.querySelector(".tutor").value,
+        Comment: row.querySelector(".comment").value
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, month);
+    }
+    XLSX.writeFile(wb, "tuition-data-multimonth.xlsx");
+  }
+
+  // IMPORT EXCEL - Fills data into all months' tables
+  document.getElementById("importExcel").addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function (evt) {
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, {type: "array"});
+      monthNames.forEach(month => {
+        const ws = wb.Sheets[month];
+        if(!ws) return;
+        const json = XLSX.utils.sheet_to_json(ws);
+        const table = document.getElementById(`table-${month}`);
+        const rows = table.querySelectorAll("tbody tr");
+        json.forEach((item, i) => {
+          if(i >= rows.length) return;
+          const row = rows[i];
+          row.querySelector(".startTime").value = item.StartTime || "";
+          row.querySelector(".endTime").value = item.EndTime || "";
+          row.querySelector(".hours").value = item.Hours || "";
+          row.querySelector(".tutor").value = item.Tutor || "";
+          row.querySelector(".comment").value = item.Comment || "";
+        });
+      });
+      document.getElementById("status").textContent = "✅ Data imported from Excel.";
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  document.getElementById("submitBtn").addEventListener("click", () => {
+    exportToExcel();
+    document.getElementById("status").textContent = "✅ Excel file downloaded.";
   });
 </script>
 
