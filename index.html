@@ -219,22 +219,36 @@
     document.getElementById(id).style.display = "block";
   });
 
-  // Calculate hours on time input change
   tabContents.addEventListener("input", e => {
-    if (e.target.classList.contains("startTime") || e.target.classList.contains("endTime")) {
-      const row = e.target.closest("tr");
-      const start = row.querySelector(".startTime").value;
-      const end = row.querySelector(".endTime").value;
-      if (start && end && end > start) {
-        const [sh, sm] = start.split(":").map(Number);
-        const [eh, em] = end.split(":").map(Number);
-        const diff = (eh * 60 + em - (sh * 60 + sm)) / 60;
-        row.querySelector(".hours").value = diff.toFixed(2);
+  if (e.target.classList.contains("startTime") || e.target.classList.contains("endTime")) {
+    const row = e.target.closest("tr");
+    const start = row.querySelector(".startTime").value;
+    const end = row.querySelector(".endTime").value;
+
+    if (start && end) {
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+
+      const startTotalMinutes = sh * 60 + sm;
+      const endTotalMinutes = eh * 60 + em;
+
+      if (endTotalMinutes > startTotalMinutes) {
+        const diffMinutes = endTotalMinutes - startTotalMinutes;
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+
+        // Format string like "1h 30m" or "0h 45m"
+        const formatted = `${hours}h ${minutes}m`;
+        row.querySelector(".hours").value = formatted;
       } else {
         row.querySelector(".hours").value = "";
       }
+    } else {
+      row.querySelector(".hours").value = "";
     }
-  });
+  }
+});
+
 
   // Export separate Excel files for Kannada and Hindi
   function exportToExcel() {
