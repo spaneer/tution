@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tuition Tracker - January 2025</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    input[type="time"], input[type="number"] {
+      width: 100px;
+    }
+    .summary {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Tuition Tracker - January 2025</h2>
+
+<table id="tuitionTable">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Day</th>
+      <th>Subject</th>
+      <th>Start Time</th>
+      <th>End Time</th>
+      <th>Hours</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div class="summary">
+  Total Kannada Hours: <span id="kannadaTotal">0</span><br>
+  Total Hindi Hours: <span id="hindiTotal">0</span>
+</div>
+
+<script>
+  const subjects = {
+    "Monday": "Kannada",
+    "Tuesday": "Hindi",
+    "Wednesday": "Kannada",
+    "Thursday": "Hindi",
+    "Friday": "Kannada"
+  };
+
+  const daysMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const tbody = document.querySelector("#tuitionTable tbody");
+
+  for (let day = 1; day <= 31; day++) {
+    const date = new Date(2025, 0, day); // January is month 0
+    const dayName = daysMap[date.getDay()];
+
+    if (subjects[dayName]) {
+      const subject = subjects[dayName];
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td>${date.toISOString().split('T')[0]}</td>
+        <td>${dayName}</td>
+        <td>${subject}</td>
+        <td><input type="time" class="startTime"></td>
+        <td><input type="time" class="endTime"></td>
+        <td><input type="number" class="hours" step="0.25" min="0"></td>
+      `;
+
+      tbody.appendChild(row);
+    }
+  }
+
+  function calculateTotals() {
+    let kannadaTotal = 0;
+    let hindiTotal = 0;
+
+    const rows = tbody.querySelectorAll("tr");
+    rows.forEach(row => {
+      const subject = row.children[2].textContent;
+      const hoursInput = row.querySelector(".hours");
+      const hours = parseFloat(hoursInput.value) || 0;
+
+      if (subject === "Kannada") {
+        kannadaTotal += hours;
+      } else if (subject === "Hindi") {
+        hindiTotal += hours;
+      }
+    });
+
+    document.getElementById("kannadaTotal").textContent = kannadaTotal.toFixed(2);
+    document.getElementById("hindiTotal").textContent = hindiTotal.toFixed(2);
+  }
+
+  // Update total hours when hours are edited
+  tbody.addEventListener("input", calculateTotals);
+</script>
+
+</body>
+</html>
