@@ -98,7 +98,6 @@
 </div>
 
 <div class="tabs" id="monthTabs"></div>
-
 <div id="tabContents"></div>
 
 <script>
@@ -123,7 +122,6 @@
   const monthTabs = document.getElementById("monthTabs");
   const tabContents = document.getElementById("tabContents");
 
-  // Create tabs for each month
   for(let i=0; i<monthsCount; i++) {
     const monthIndex = startMonthIndex + i;
     const year = startYear;
@@ -139,8 +137,6 @@
     tabDiv.classList.add("tabcontent");
     if(i === 0) tabDiv.style.display = "block";
 
-    // Create two tables per month, one for Kannada and one for Hindi
-    // Kannada Table
     const kannadaTable = document.createElement("table");
     kannadaTable.id = `table-${monthNames[i]}-Kannada`;
     kannadaTable.innerHTML = `
@@ -154,7 +150,6 @@
     `;
     const kannadaTbody = kannadaTable.querySelector("tbody");
 
-    // Hindi Table
     const hindiTable = document.createElement("table");
     hindiTable.id = `table-${monthNames[i]}-Hindi`;
     hindiTable.innerHTML = `
@@ -171,11 +166,9 @@
     const days = getMonthDays(year, monthIndex);
 
     days.forEach(date => {
-      const day = date.getDay();
-      const dateStr = date.toISOString().split('T')[0];
-      const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day];
+      const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
 
-      // Kannada row
       const kannadaRow = document.createElement("tr");
       kannadaRow.innerHTML = `
         <td>${dateStr}</td>
@@ -188,7 +181,6 @@
       `;
       kannadaTbody.appendChild(kannadaRow);
 
-      // Hindi row
       const hindiRow = document.createElement("tr");
       hindiRow.innerHTML = `
         <td>${dateStr}</td>
@@ -208,7 +200,6 @@
     tabContents.appendChild(tabDiv);
   }
 
-  // Tab switching logic
   monthTabs.addEventListener("click", e => {
     if(e.target.tagName !== "BUTTON") return;
     [...monthTabs.children].forEach(btn => btn.classList.remove("active"));
@@ -220,39 +211,34 @@
   });
 
   tabContents.addEventListener("input", e => {
-  if (e.target.classList.contains("startTime") || e.target.classList.contains("endTime")) {
-    const row = e.target.closest("tr");
-    const start = row.querySelector(".startTime").value;
-    const end = row.querySelector(".endTime").value;
+    if (e.target.classList.contains("startTime") || e.target.classList.contains("endTime")) {
+      const row = e.target.closest("tr");
+      const start = row.querySelector(".startTime").value;
+      const end = row.querySelector(".endTime").value;
 
-    if (start && end) {
-      const [sh, sm] = start.split(":").map(Number);
-      const [eh, em] = end.split(":").map(Number);
+      if (start && end) {
+        const [sh, sm] = start.split(":").map(Number);
+        const [eh, em] = end.split(":").map(Number);
 
-      const startTotalMinutes = sh * 60 + sm;
-      const endTotalMinutes = eh * 60 + em;
+        const startTotalMinutes = sh * 60 + sm;
+        const endTotalMinutes = eh * 60 + em;
 
-      if (endTotalMinutes > startTotalMinutes) {
-        const diffMinutes = endTotalMinutes - startTotalMinutes;
-        const hours = Math.floor(diffMinutes / 60);
-        const minutes = diffMinutes % 60;
-
-        // Format string like "1h 30m" or "0h 45m"
-        const formatted = `${hours}h ${minutes}m`;
-        row.querySelector(".hours").value = formatted;
+        if (endTotalMinutes > startTotalMinutes) {
+          const diffMinutes = endTotalMinutes - startTotalMinutes;
+          const hours = Math.floor(diffMinutes / 60);
+          const minutes = diffMinutes % 60;
+          const formatted = `${hours}h ${minutes}m`;
+          row.querySelector(".hours").value = formatted;
+        } else {
+          row.querySelector(".hours").value = "";
+        }
       } else {
         row.querySelector(".hours").value = "";
       }
-    } else {
-      row.querySelector(".hours").value = "";
     }
-  }
-});
+  });
 
-
-  // Export separate Excel files for Kannada and Hindi
   function exportToExcel() {
-    // Helper to gather data by language
     function gatherData(language) {
       const wb = XLSX.utils.book_new();
       for(let i=0; i<monthsCount; i++) {
@@ -281,7 +267,6 @@
     XLSX.writeFile(hindiWb, "tuition-data-Hindi.xlsx");
   }
 
-  // Import function per language
   function importExcel(language, file) {
     if (!file) return;
     const reader = new FileReader();
